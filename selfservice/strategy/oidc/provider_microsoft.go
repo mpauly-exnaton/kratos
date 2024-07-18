@@ -68,12 +68,19 @@ func (m *ProviderMicrosoft) Claims(ctx context.Context, exchange *oauth2.Token, 
 		return nil, errors.WithStack(herodot.ErrBadRequest.WithReasonf("TenantID claim is not a valid UUID: %s", err))
 	}
 
-	issuer := "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/v2.0"
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, m.reg.HTTPClient(ctx).HTTPClient)
-	p, err := gooidc.NewProvider(ctx, issuer)
-	if err != nil {
-		return nil, errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to initialize OpenID Connect Provider: %s", err))
+	// issuer := "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/v2.0"
+	// ctx = context.WithValue(ctx, oauth2.HTTPClient, m.reg.HTTPClient(ctx).HTTPClient)
+	// p, err := gooidc.NewProvider(ctx, issuer)
+	// if err != nil {
+	// 	return nil, errors.WithStack(herodot.ErrInternalServerError.WithReasonf("Unable to initialize OpenID Connect Provider: %s", err))
+	// }
+	config := gooidc.ProviderConfig{
+		IssuerURL: "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/v2.0",
+		AuthURL: "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/oauth2/v2.0/authorize",
+		TokenURL: "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/oauth2/v2.0/token",
+		JWKSURL: "https://login.microsoftonline.com/" + unverifiedClaims.TenantID + "/discovery/v2.0/keys?appid=" + m.config.ClientID,
 	}
+	p := config.NewProvider(ctx)
 
 	claims, err := m.verifyAndDecodeClaimsWithProvider(ctx, p, raw)
 	if err != nil {
